@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeWillTell</title>
+    <!-- Chota.css: 軽量なCSSフレームワーク -->
+    <link rel="stylesheet" href="https://unpkg.com/chota@0.9.0/dist/chota.min.css">
+    <!-- SweetAlert2: ポップアップアラート -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        body {
+            padding: 10px 20px;
+        }
+
+        .container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        h1 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .race-list-container {
+            margin-bottom: 10px;
+            height: 150px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            padding: 5px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .race-item {
+            cursor: pointer;
+            padding: 5px 8px;
+            border-bottom: 1px solid #eee;
+            background-color: #f9f9f9;
+        }
+
+        .race-item:last-child {
+            border-bottom: none;
+        }
+
+        .race-item:hover {
+            background-color: #e6e6e6;
+        }
+
+        .race-item.selected {
+            background-color: #d1e7dd;
+            font-weight: bold;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            display: block; /* Flexboxを無効化 */
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        #raceTableContainer,
+        .graph-area,
+        #conditionGraphContainer {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        #raceTableContainer {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            box-sizing: border-box;
+            height: auto;
+        }
+
+        #raceTableContainer button {
+            margin-bottom: 10px;
+        }
+
+        #raceTable {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8em;
+        }
+
+        #raceTable th,
+        #raceTable td {
+            padding: 4px 6px;
+            white-space: nowrap;
+        }
+        
+        #raceTable tbody tr.highlight {
+            background-color: #e0f7fa !important;
+        }
+
+        .graph-area {
+            display: block; /* Flexboxを無効化 */
+        }
+        
+        #correctedTimeGraphContainer,
+        #corrected9MTimeGraphContainer {
+            width: 100%;
+            height: 350px;
+            min-height: unset;
+            margin-bottom: 100px; /* グラフ間の余白 */
+        }
+        
+        #conditionGraphContainer {
+            display: none;
+            flex-grow: unset;
+            width: 100%;
+            height: auto;
+            /* ここからflexboxレイアウト */
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+        }
+        
+        #conditionContainerLeft {
+            /* 左側の好走条件検索UIエリア */
+            flex-basis: 250px;
+            flex-shrink: 0;
+            border-right: 1px solid #eee;
+            padding-right: 20px;
+            overflow-y: auto;
+        }
+        
+        #conditionContainerRight {
+            /* 右側のテーブル表示エリア */
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .condition-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            background-color: #fcfcfc;
+        }
+
+        .condition-filters label {
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-right: 5px;
+            white-space: nowrap;
+        }
+
+        .condition-filters select,
+        .condition-filters input[type="number"],
+        .condition-filters button {
+            padding: 5px 8px;
+            font-size: 0.7em;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+
+        .condition-filters button {
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+        }
+
+        .condition-filters button:hover {
+            opacity: 0.9;
+        }
+        
+        .good-performance-table-container {
+            overflow-y: auto;
+            position: relative;
+        }
+
+        #combinedPerformanceTable {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8em;
+            table-layout: fixed;
+        }
+        
+        #combinedPerformanceTable thead th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        
+        #combinedPerformanceTable th,
+        #combinedPerformanceTable td {
+            padding: 4px 6px;
+            border: 1px solid #ddd;
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        #combinedPerformanceTable th:first-child,
+        #combinedPerformanceTable td:first-child {
+            text-align: left;
+            width: 30%;
+        }
+        
+        #noDataMessage {
+            text-align: center;
+            color: #888;
+            padding: 20px;
+            display: none;
+        }
+
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .graph-controls-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .graph-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        .graph-container canvas {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        @media (max-width: 992px) {
+            .main-content {
+                flex-direction: column;
+                height: auto;
+            }
+
+            #raceTableContainer,
+            .graph-area,
+            #conditionGraphContainer {
+                flex: none;
+                width: 100%;
+                min-width: unset;
+                max-width: unset;
+                height: 1000px;
+                overflow-y: auto;
+                margin-bottom: 15px;
+            }
+
+            #raceTableContainer {
+                max-height: 300px;
+            }
+            
+            .graph-area {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            #correctedTimeGraphContainer,
+            #corrected9MTimeGraphContainer {
+                height: 500px;
+            }
+            
+            #conditionGraphContainer {
+                flex-direction: column;
+                min-height: auto;
+            }
+            
+            #conditionContainerLeft {
+                flex-basis: auto;
+                border-right: none;
+                padding-right: 0;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 10px;
+            }
+        }
+        @media (max-width: 767px) {
+            body {
+                padding: 5px;
+            }
+
+            h1 {
+                font-size: 1.3em;
+            }
+
+            .header-controls {
+                flex-wrap: wrap;
+            }
+
+            .graph-container {
+                min-height: 200px;
+            }
+
+            .condition-filters {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .condition-filters select,
+            .condition-filters input[type="number"],
+            .condition-filters button {
+                width: 100%;
+                margin-top: 5px;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@latest"></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>TimeWillTell</h1>
+
+        <div class="header-controls">
+            <label for="dateInput">日付:</label>
+            <input type="date" id="dateInput">
+            <label for="venueSelect">場所:</label>
+            <select id="venueSelect"></select>
+            <button onclick="fetchRaces()">レース取得</button>
+        </div>
+
+        <div class="race-list-container">
+            <p>レース一覧:</p>
+            <div id="raceList"></div>
+        </div>
+        
+        <!-- main-contentのレイアウトを縦並びに変更 -->
+        <div class="main-content">
+            <!-- 出馬表コンテナ -->
+            <div id="raceTableContainer">
+                <h2>出馬表</h2>
+                <button id="updateOddsButton" class="button-small">オッズ更新</button>
+                <table id="raceTable" class="full-width">
+                    <thead>
+                        <tr>
+                            <th>枠番</th>
+                            <th>馬番</th>
+                            <th>馬名</th>
+                            <th>性別</th>
+                            <th>年齢</th>
+                            <th>斤量</th>
+                            <th>騎手</th>
+                            <th>調教師</th>
+                            <th>人気</th>
+                            <th>オッズ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- グラフエリアを横並びのFlexboxコンテナに変更 -->
+            <div class="graph-area">
+                <!-- 補正タイムグラフコンテナ -->
+                <div id="correctedTimeGraphContainer" class="graph-container">
+                    <h2>補正タイムグラフ</h2>
+                    <div class="graph-controls-group">
+                        <div class="graph-controls">
+                            <button onclick="toggleAllLines(correctedTimeChart, true)">全表示</button>
+                            <button onclick="toggleAllLines(correctedTimeChart, false)">全非表示</button>
+                        </div>
+                    </div>
+                    <canvas id="correctedTimeChart"></canvas>
+                </div>
+
+                <!-- 補9タイムグラフコンテナ -->
+                <div id="corrected9MTimeGraphContainer" class="graph-container">
+                    <h2>補9タイムグラフ</h2>
+                    <div class="graph-controls-group">
+                        <div class="graph-controls">
+                            <button onclick="toggleAllLines(corrected9MTimeChart, true)">全表示</button>
+                            <button onclick="toggleAllLines(corrected9MTimeChart, false)">全非表示</button>
+                        </div>
+                    </div>
+                    <canvas id="corrected9MTimeChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 好走率表示エリアのHTML -->
+            <div id="conditionGraphContainer" class="graph-container">
+                <div id="conditionContainerLeft">
+                    <h2><span id="selectedHorseNameForCondition"></span> の得意条件</h2>
+
+                    <div class="condition-filters">
+                        <label for="filterTrackType">トラック種別:</label>
+                        <select id="filterTrackType">
+                            <option value="">全て</option>
+                            <option value="芝">芝</option>
+                            <option value="ダート">ダート</option>
+                        </select>
+                        <label for="filterDistanceMin">距離:</label>
+                        <input type="number" id="filterDistanceMin" placeholder="最小m" style="width: 80px;">
+                        <span>-</span>
+                        <input type="number" id="filterDistanceMax" placeholder="最大m" style="width: 80px;">
+
+                        <label for="filterVenue">競馬場:</label>
+                        <select id="filterVenue">
+                            <option value="">全て</option>
+                            </select>
+
+                        <label for="filterTrackCondition">馬場状態:</label>
+                        <select id="filterTrackCondition">
+                            <option value="">全て</option>
+                            <option value="良">良</option>
+                            <option value="稍重">稍重</option>
+                            <option value="重">重</option>
+                            <option value="不良">不良</option>
+                        </select>
+
+                        <button id="applyConditionFilterButton" class="button-small">絞り込み適用</button>
+                        <button id="resetConditionFilterButton" class="button-small">リセット</button>
+                    </div>
+                </div>
+                <div id="conditionContainerRight">
+                    <div class="good-performance-table-container">
+                        <table id="combinedPerformanceTable">
+                            <thead><tr><th>条件</th><th>出走</th><th>1着</th><th>3着内</th><th>勝率</th><th>3着内率</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                        <p id="noDataMessage" class="no-data-message">データなし</p>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    <script>
+        let dateInput, venueSelect, raceListDiv, raceTableBody,
+            correctedTimeChartCanvas, corrected9MTimeChartCanvas,
+            conditionGraphContainer, selectedHorseNameForCondition, updateOddsButton;
+
+        let correctedTimeChart = null;
+        let corrected9MTimeChart = null;
+        
+        let combinedPerformanceTableBody, noDataMessage;
+
+        let filterTrackType, filterDistanceMin, filterDistanceMax, filterVenue, filterTrackCondition,
+            applyConditionFilterButton, resetConditionFilterButton;
+
+        const availableVenues = ['新潟', '福島', '東京', '京都', '阪神', '中山', '中京', '小倉', '札幌', '函館'];
+        const availableTrackConditions = ['良', '稍重', '重', '不良'];
+
+        let currentSelectedRace = { date: null, venue: null, raceNum: null, fullRaceId: null, horseNameForCondition: null };
+
+        function getLineChartOptions(titleText) {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: titleText, font: { size: 14 } },
+                    legend: {
+                        onClick: (e, legendItem, legend) => {
+                            const index = legendItem.datasetIndex;
+                            const chart = legend.chart;
+                            const meta = chart.getDatasetMeta(index);
+                            meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
+                            chart.update();
+                            highlightHorseInChart(null);
+                        },
+                        labels: { font: { size: 10 }, boxWidth: 15, padding: 8 }
+                    },
+                    zoom: {
+                        pan: { enabled: false, mode: 'xy' },
+                        zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'xy' }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: { unit: 'month', tooltipFormat: 'YYYY/MM/DD', displayFormats: { month: 'YYYY/MM' } },
+                        title: { display: true, text: '日付', font: { size: 12 } },
+                        ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 0 }
+                    },
+                    y: {
+                        title: { display: true, text: '能力値', font: { size: 12 } },
+                        ticks: { font: { size: 10 } }
+                    }
+                }
+            };
+        }
+
+        function initializeAllAbilityCharts() {
+            if (correctedTimeChart) correctedTimeChart.destroy();
+            if (corrected9MTimeChart) corrected9MTimeChart.destroy();
+
+            correctedTimeChart = new Chart(correctedTimeChartCanvas, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: getLineChartOptions('各馬の補正タイム推移')
+            });
+
+            corrected9MTimeChart = new Chart(corrected9MTimeChartCanvas, {
+                type: 'line',
+                data: { labels: [], datasets: [] },
+                options: getLineChartOptions('各馬の補9タイム推移')
+            });
+
+            addClickHandlerToChart(correctedTimeChart);
+            addClickHandlerToChart(corrected9MTimeChart);
+        }
+
+        function initializeConditionDisplay() {
+            combinedPerformanceTableBody.innerHTML = '';
+            noDataMessage.style.display = 'block';
+        }
+
+        function toggleAllLines(chart, show) {
+            chart.data.datasets.forEach((dataset, index) => {
+                chart.getDatasetMeta(index).hidden = show ? false : true;
+            });
+            chart.update();
+            highlightHorseInChart(null);
+        }
+
+        async function fetchRaces() {
+            const selectedDate = dateInput.value;
+            const selectedVenue = venueSelect.value;
+            try {
+                const response = await fetch(`/api/races/${selectedDate}/${selectedVenue}`);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                }
+                const races = await response.json();
+                raceListDiv.innerHTML = '';
+                if (races.length === 0) {
+                    raceListDiv.textContent = '該当するレースがありませんでした。';
+                    return;
+                }
+                races.forEach(race => {
+                    const raceItem = document.createElement('div');
+                    raceItem.classList.add('race-item');
+                    raceItem.textContent = `${race['Ｒ']}R ${race['レース名']}`;
+                    raceItem.dataset.raceNumber = race['Ｒ'];
+                    raceItem.onclick = () => selectRace(selectedDate, selectedVenue, race['Ｒ'], raceItem);
+                    raceListDiv.appendChild(raceItem);
+                });
+            } catch (error) {
+                console.error('レース情報の取得に失敗しました:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'エラー',
+                    text: 'レース情報の取得に失敗しました。詳細をコンソールで確認してください。'
+                });
+            }
+        }
+
+        async function selectRace(dateStr, venue, raceNum, selectedRaceItem) {
+            document.querySelectorAll('.race-item').forEach(item => item.classList.remove('selected'));
+            selectedRaceItem.classList.add('selected');
+
+            currentSelectedRace.date = dateStr;
+            currentSelectedRace.venue = venue;
+            currentSelectedRace.raceNum = raceNum;
+
+            Swal.fire({
+                title: '出馬表・グラフを読み込み中...',
+                html: 'データを取得しています。しばらくお待ちください。',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                const response = await fetch(`/api/race_card/${dateStr}/${venue}/${raceNum}`);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                }
+                const raceCardData = await response.json();
+
+                if (raceCardData.length > 0 && raceCardData[0]['race_id']) {
+                    currentSelectedRace.fullRaceId = raceCardData[0]['race_id'];
+                    updateOddsButton.disabled = false;
+                } else {
+                    currentSelectedRace.fullRaceId = null;
+                    updateOddsButton.disabled = true;
+                }
+
+                displayRaceTable(raceCardData);
+                await updateAllAbilityCharts(raceCardData);
+                conditionGraphContainer.style.display = 'none';
+                resetConditionFilters();
+
+
+                Swal.close();
+
+            } catch (error) {
+                console.error('出馬表情報の取得に失敗しました:', error);
+                Swal.close();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'エラー',
+                    text: '出馬表情報の取得に失敗しました。詳細をコンソールで確認してください。'
+                });
+            }
+        }
+
+        function displayRaceTable(raceCardData) {
+            raceTableBody.innerHTML = '';
+            if (raceCardData.length === 0) {
+                const row = raceTableBody.insertRow();
+                const cell = row.insertCell();
+                cell.colSpan = 10;
+                cell.textContent = '出走馬情報がありません。';
+                return;
+            }
+            raceCardData.forEach(horse => {
+                const row = raceTableBody.insertRow();
+                const cleanedHorseName = horse['馬名'] ? horse['馬名'].trim() : null;
+                row.dataset.horseName = cleanedHorseName;
+
+                row.insertCell().textContent = horse['枠番'] || 'N/A';
+                row.insertCell().textContent = horse['馬番'];
+                const horseNameCell = row.insertCell();
+                horseNameCell.textContent = horse['馬名'];
+                horseNameCell.style.cursor = 'pointer';
+                horseNameCell.style.textDecoration = 'underline';
+
+                if (cleanedHorseName) {
+                    horseNameCell.addEventListener('click', () => highlightHorseInChart(cleanedHorseName));
+                }
+
+                row.insertCell().textContent = horse['性別'] || '不明';
+                row.insertCell().textContent = horse['年齢'] || '不明';
+                row.insertCell().textContent = horse['斤量'] || '不明';
+                row.insertCell().textContent = horse['騎手'] || '不明';
+                row.insertCell().textContent = horse['調教師'] || '不明';
+                row.insertCell().textContent = (horse['人気'] !== undefined && horse['人気'] !== null) ? horse['人気'] : 'N/A';
+                row.insertCell().textContent = (horse['オッズ'] !== undefined && horse['オッズ'] !== null) ? horse['オッズ'] : 'N/A';
+            });
+        }
+
+        async function updateAllAbilityCharts(raceCardHorses) {
+            initializeAllAbilityCharts();
+            const correctedTimeDatasets = [];
+            const corrected9MTimeDatasets = [];
+
+            for (const horse of raceCardHorses) {
+                const horseNameRaw = horse['馬名'];
+                const cleanedHorseName = horseNameRaw ? horseNameRaw.trim() : null;
+
+                if (cleanedHorseName === null) {
+                    continue;
+                }
+
+                try {
+                    const response = await fetch(`/api/horse_past_data/${cleanedHorseName}`);
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`HTTP error! status: ${response.status} for horse: ${cleanedHorseName}, message: ${errorText}`);
+                    }
+                    const responseData = await response.json();
+                    const pastData = responseData.past_races;
+                    const sortedData = pastData.sort((a, b) => new Date(a['日付']) - new Date(b['日付']));
+
+                    if (sortedData.length > 0) {
+                        const randomColor = getRandomColor();
+                        correctedTimeDatasets.push({
+                            label: cleanedHorseName,
+                            data: sortedData.map(d => ({ x: d['日付'], y: d['補正'], originalData: d })),
+                            borderColor: randomColor,
+                            backgroundColor: 'rgba(0,0,0,0)',
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointHitRadius: 15,
+                            horseName: cleanedHorseName,
+                            originalColor: randomColor,
+                            originalWidth: 2,
+                            originalRadius: 4,
+                            type: 'line',
+                            hidden: false
+                        });
+                        corrected9MTimeDatasets.push({
+                            label: cleanedHorseName,
+                            data: sortedData.map(d => ({ x: d['日付'], y: d['補9'], originalData: d })),
+                            borderColor: randomColor,
+                            backgroundColor: 'rgba(0,0,0,0)',
+                            borderDash: [5, 5],
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointHitRadius: 15,
+                            horseName: cleanedHorseName,
+                            originalColor: randomColor,
+                            originalWidth: 2,
+                            originalRadius: 4,
+                            type: 'line',
+                            hidden: false
+                        });
+                    }
+                } catch (error) {
+                    console.error(`馬名 ${cleanedHorseName} の過去データの取得に失敗しました:`, error);
+                }
+            }
+            correctedTimeChart.data.datasets = correctedTimeDatasets;
+            corrected9MTimeChart.data.datasets = corrected9MTimeDatasets;
+            correctedTimeChart.update();
+            corrected9MTimeChart.update();
+        }
+
+        async function highlightHorseInChart(horseName) {
+            const cleanedHorseName = horseName ? horseName.trim() : null;
+
+            [correctedTimeChart, corrected9MTimeChart].forEach(chart => {
+                if (!chart) return;
+                chart.data.datasets.forEach(dataset => {
+                    if (cleanedHorseName === null) {
+                        dataset.borderColor = dataset.originalColor;
+                        dataset.borderWidth = dataset.originalWidth;
+                        dataset.pointRadius = dataset.originalRadius;
+                        if (chart.getDatasetMeta(chart.data.datasets.indexOf(dataset)).hidden) {
+                            dataset.hidden = true;
+                        } else {
+                            dataset.hidden = false;
+                        }
+                    } else if (dataset.horseName === cleanedHorseName) {
+                        dataset.borderColor = dataset.originalColor.replace(/rgba\((.*),([\d.]+)\)/, 'rgba($1, 1)');
+                        dataset.borderWidth = 4;
+                        dataset.pointRadius = 6;
+                        dataset.hidden = false;
+                    } else {
+                        dataset.borderColor = dataset.originalColor.replace(/rgba\((.*),([\d.]+)\)/, 'rgba($1, 0.3)');
+                        dataset.borderWidth = dataset.originalWidth;
+                        dataset.pointRadius = dataset.originalRadius;
+                        if (chart.getDatasetMeta(chart.data.datasets.indexOf(dataset)).hidden) {
+                            dataset.hidden = true;
+                        } else {
+                            dataset.hidden = false;
+                        }
+                    }
+                });
+                chart.update();
+            });
+
+            document.querySelectorAll('#raceTable tbody tr').forEach(row => {
+                row.classList.remove('highlight');
+                if (row.dataset.horseName === cleanedHorseName) {
+                    row.classList.add('highlight');
+                }
+            });
+
+            if (cleanedHorseName) {
+                selectedHorseNameForCondition.textContent = cleanedHorseName;
+                conditionGraphContainer.style.display = 'flex';
+                await updateConditionCharts(cleanedHorseName, {});
+                currentSelectedRace.horseNameForCondition = cleanedHorseName;
+            } else {
+                conditionGraphContainer.style.display = 'none';
+                currentSelectedRace.horseNameForCondition = null;
+                resetConditionFilters();
+            }
+        }
+
+        async function updateConditionCharts(horseName, filters = {}) {
+            initializeConditionDisplay();
+
+            const cleanedHorseName = horseName.trim();
+
+            const params = new URLSearchParams();
+            for (const key in filters) {
+                if (filters[key] !== '' && filters[key] !== null && filters[key] !== undefined) {
+                    params.append(key, filters[key]);
+                }
+            }
+            const queryString = params.toString();
+            const url = `/api/horse_past_data/${cleanedHorseName}${queryString ? '?' + queryString : ''}`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status} for horse: ${cleanedHorseName}, message: ${errorText}`);
+                }
+                const responseData = await response.json();
+
+                const goodPerformanceRates = responseData.good_performance_rates;
+
+                if (!goodPerformanceRates || typeof goodPerformanceRates !== 'object') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'データ形式エラー',
+                        text: `${cleanedHorseName} の得意条件データが不完全です。`
+                    });
+                    conditionGraphContainer.style.display = 'none';
+                    return;
+                }
+
+                let hasAnyDataToDisplay = false;
+                
+                const allData = [
+                    ...goodPerformanceRates.distance_track,
+                    ...goodPerformanceRates.racecourse,
+                    ...goodPerformanceRates.track_condition,
+                    ...goodPerformanceRates.distance,
+                    ...goodPerformanceRates.track_type
+                ];
+
+                if (allData.length > 0) {
+                    displayPerformanceTable(allData);
+                    hasAnyDataToDisplay = true;
+                } else {
+                    noDataMessage.style.display = 'block';
+                    combinedPerformanceTableBody.innerHTML = '';
+                }
+
+                conditionGraphContainer.style.display = 'flex';
+
+            } catch (error) {
+                console.error(`馬名 ${cleanedHorseName} の得意条件データ取得・解析に失敗しました:`, error);
+                conditionGraphContainer.style.display = 'none';
+                Swal.fire({
+                    icon: 'error',
+                    title: '得意条件データ取得エラー',
+                    text: '得意条件データの取得中にエラーが発生しました。'
+                });
+            }
+        }
+
+        function displayPerformanceTable(dataList) {
+            combinedPerformanceTableBody.innerHTML = '';
+
+            if (!dataList || dataList.length === 0) {
+                noDataMessage.style.display = 'block';
+                return false;
+            } else {
+                noDataMessage.style.display = 'none';
+                dataList.forEach(item => {
+                    const row = combinedPerformanceTableBody.insertRow();
+                    row.insertCell().textContent = item.condition;
+                    row.insertCell().textContent = item.total_races;
+                    row.insertCell().textContent = item.wins;
+                    row.insertCell().textContent = item.top3s;
+                    row.insertCell().textContent = `${item.win_rate}%`;
+                    row.insertCell().textContent = `${item.top3_rate}%`;
+                });
+                return true;
+            }
+        }
+
+        function getRandomColor(alpha = 1) {
+            const r = Math.floor(Math.random() * 255);
+            const g = Math.floor(Math.random() * 255);
+            const b = Math.floor(Math.random() * 255);
+            return `rgba(${r},${g},${b},${alpha})`;
+        }
+
+        function addClickHandlerToChart(chartInstance) {
+            if (!chartInstance) return;
+            chartInstance.canvas.onclick = (e) => {
+                const elements = chartInstance.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+                if (elements.length > 0) {
+                    const { datasetIndex, index } = elements[0];
+                    const dataset = chartInstance.data.datasets[datasetIndex];
+                    const clickedData = dataset.data[index];
+                    if (clickedData && clickedData.originalData) {
+                        const original = clickedData.originalData;
+                        Swal.fire({
+                            title: dataset.horseName,
+                            icon: 'info',
+                            html:
+                                `
+                                <div style="text-align: left; display: inline-block;">
+                                <strong>日付:</strong> ${clickedData.x ? moment(clickedData.x).format('YYYY/MM/DD') : 'N/A'}<br>
+                                <strong>クラス:</strong> ${original['クラス名'] || 'N/A'}<br>
+                                <strong>補正タイム:</strong> ${original['補正'] || 'N/A'}<br>
+                                <strong>補9タイム:</strong> ${original['補9'] || 'N/A'}<br>
+                                <strong>着順:</strong> ${original['着順'] || 'N/A'}<br>
+                                <strong>場所:</strong> ${original['場所'] || 'N/A'}<br>
+                                <strong>距離:</strong> ${original['距離'] || 'N/A'}<br>
+                                <strong>馬場状態:</strong> ${original['馬場状態'] || 'N/A'}<br>
+                                <strong>トラック種別:</strong> ${original['トラック種別'] || 'N/A'}
+                                </div>
+                            `,
+                            confirmButtonText: '閉じる'
+                        });
+                    }
+                }
+            };
+        }
+
+        async function updateOdds() {
+            if (!currentSelectedRace.date || !currentSelectedRace.venue || !currentSelectedRace.raceNum) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: '警告',
+                    text: 'レースが選択されていません。先にレースを選択してください。'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'オッズを更新中...',
+                html: '最新のオッズを取得しています。しばらくお待ちください。<br>※リアルタイムではない場合があります。',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            try {
+                const response = await fetch(`/api/race_card/${currentSelectedRace.date}/${currentSelectedRace.venue}/${currentSelectedRace.raceNum}`);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                }
+                const updatedRaceCardData = await response.json();
+
+                displayRaceTable(updatedRaceCardData);
+
+                Swal.close();
+                Swal.fire({
+                    icon: 'success',
+                    title: '更新完了',
+                    text: 'オッズが正常に更新されました。',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+            } catch (error) {
+                console.error('オッズ更新に失敗しました:', error);
+                Swal.close();
+                Swal.fire({
+                    icon: 'error',
+                    title: '更新失敗',
+                    text: 'オッズの更新中にエラーが発生しました。コンソールを確認してください。'
+                });
+            }
+        }
+
+        function resetConditionFilters() {
+            filterTrackType.value = '';
+            filterDistanceMin.value = '';
+            filterDistanceMax.value = '';
+            filterVenue.value = '';
+            filterTrackCondition.value = '';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            dateInput = document.getElementById('dateInput');
+            venueSelect = document.getElementById('venueSelect');
+            raceListDiv = document.getElementById('raceList');
+            raceTableBody = document.querySelector('#raceTable tbody');
+            correctedTimeChartCanvas = document.getElementById('correctedTimeChart');
+            corrected9MTimeChartCanvas = document.getElementById('corrected9MTimeChart');
+
+            conditionGraphContainer = document.getElementById('conditionGraphContainer');
+            selectedHorseNameForCondition = document.getElementById('selectedHorseNameForCondition');
+            updateOddsButton = document.getElementById('updateOddsButton');
+            
+            combinedPerformanceTableBody = document.querySelector('#combinedPerformanceTable tbody');
+            noDataMessage = document.querySelector('#noDataMessage');
+
+            filterTrackType = document.getElementById('filterTrackType');
+            filterDistanceMin = document.getElementById('filterDistanceMin');
+            filterDistanceMax = document.getElementById('filterDistanceMax');
+            filterVenue = document.getElementById('filterVenue');
+            filterTrackCondition = document.getElementById('filterTrackCondition');
+            applyConditionFilterButton = document.getElementById('applyConditionFilterButton');
+            resetConditionFilterButton = document.getElementById('resetConditionFilterButton');
+
+            availableVenues.forEach(venue => {
+                const option = document.createElement('option');
+                option.value = venue;
+                option.textContent = venue;
+                venueSelect.appendChild(option);
+                const filterOption = option.cloneNode(true);
+                filterVenue.appendChild(filterOption);
+            });
+            venueSelect.value = '東京';
+
+            availableTrackConditions.forEach(condition => {
+                const option = document.createElement('option');
+                option.value = condition;
+                option.textContent = condition;
+                filterTrackCondition.appendChild(option);
+            });
+
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}`;
+
+            initializeAllAbilityCharts();
+            initializeConditionDisplay();
+
+            updateOddsButton.addEventListener('click', updateOdds);
+            updateOddsButton.disabled = true;
+
+            applyConditionFilterButton.addEventListener('click', () => {
+                if (currentSelectedRace.horseNameForCondition) {
+                    const filters = {
+                        track_type: filterTrackType.value,
+                        distance_min: filterDistanceMin.value,
+                        distance_max: filterDistanceMax.value,
+                        venue: filterVenue.value,
+                        track_condition: filterTrackCondition.value
+                    };
+                    updateConditionCharts(currentSelectedRace.horseNameForCondition, filters);
+                } else {
+                    Swal.fire('情報', '先に馬を選択してください。', 'info');
+                }
+            });
+
+            resetConditionFilterButton.addEventListener('click', () => {
+                resetConditionFilters();
+                if (currentSelectedRace.horseNameForCondition) {
+                    updateConditionCharts(currentSelectedRace.horseNameForCondition, {});
+                }
+            });
+
+            fetchRaces();
+        });
+    </script>
+</body>
+
+</html>

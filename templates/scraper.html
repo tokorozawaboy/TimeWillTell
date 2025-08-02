@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>出馬表スクレイパー</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 2em auto; padding: 0 1em; line-height: 1.6; }
+        .form-group { margin-bottom: 1em; }
+        label { display: inline-block; width: 50px; }
+        input[type="number"] { width: 80px; padding: 5px; font-size: 1em; }
+        button { padding: 8px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #log-container { margin-top: 1.5em; border: 1px solid #ccc; background-color: #f8f9fa; padding: 1em; min-height: 200px; max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; }
+        a { color: #007bff; }
+    </style>
+</head>
+<body>
+    <h1>出馬表 スクレイピングツール</h1>
+    <p><a href="/">トップページに戻る</a></p>
+    <form id="scraper-form">
+        <div class="form-group">
+            <label for="year">年:</label>
+            <input type="number" id="year" name="year" required>
+        </div>
+        <div class="form-group">
+            <label for="month">月:</label>
+            <input type="number" id="month" name="month" required>
+        </div>
+        <div class="form-group">
+            <label for="day">日:</label>
+            <input type="number" id="day" name="day" required>
+        </div>
+        <button type="submit" id="submit-button">スクレイピング実行</button>
+    </form>
+
+    <h3>ログ</h3>
+    <pre id="log-container"></pre>
+
+    <script>
+        document.getElementById('scraper-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const logContainer = document.getElementById('log-container');
+            const submitButton = document.getElementById('submit-button');
+            logContainer.textContent = '処理を開始します...\n';
+            submitButton.disabled = true;
+            try {
+                const response = await fetch('/run-scraper', { method: 'POST', body: formData });
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    logContainer.textContent += decoder.decode(value, { stream: true });
+                    logContainer.scrollTop = logContainer.scrollHeight;
+                }
+            } catch (error) {
+                logContainer.textContent += '\nエラーが発生しました: ' + error;
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+        const today = new Date();
+        document.getElementById('year').value = today.getFullYear();
+        document.getElementById('month').value = today.getMonth() + 1;
+        document.getElementById('day').value = today.getDate();
+    </script>
+</body>
+</html>
