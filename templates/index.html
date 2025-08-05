@@ -256,8 +256,8 @@
 
         #corrected9MTimeGraphContainer canvas,
         #correctedTimeGraphContainer canvas {
-            height: 400px !important;
-            width: 100% !important;
+            height: 400px; /* !important を削除 */
+            width: 100%; /* !important を削除 */
             margin-bottom: 20px;
         }
 
@@ -719,7 +719,7 @@
                             html: `<div style="text-align: left; display: inline-block;">
                                 <strong>日付:</strong> ${moment(original['日付']).format('YYYY/MM/DD')}<br>
                                 <strong>クラス:</strong> ${original['クラス名'] || 'N/A'}<br>
-                                <strong>タイム指数:</strong> ${original['タイム'] || 'N/A'}<br>
+                                <strong>タイム指数:</strong> ${original['補9'] || 'N/A'}<br>
                                 <strong>クラス別指数:</strong> ${original['補正'] || 'N/A'}<br>
                                 <strong>着順:</strong> ${original['着順'] || 'N/A'}<br>
                                 <strong>場所:</strong> ${original['場所'] || 'N/A'}<br>
@@ -730,6 +730,16 @@
                         });
                     }
                 }
+            };
+        }
+        
+        // debounce関数の定義
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), wait);
             };
         }
 
@@ -760,6 +770,17 @@
             updateOddsButton.disabled = true;
 
             fetchRaces();
+
+            // debounce を使ったリサイズイベントリスナー
+            const debouncedResize = debounce(() => {
+                if (correctedTimeChart) {
+                    correctedTimeChart.resize();
+                }
+                if (corrected9MTimeChart) {
+                    corrected9MTimeChart.resize();
+                }
+            }, 200); // 200ms後に実行
+            window.addEventListener('resize', debouncedResize);
         });
     </script>
 </body>
